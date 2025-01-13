@@ -5,4 +5,4 @@ router = Router()
 
 @router.message()
 async def send_echo(message: Message):
-    await message.answer('Тыкай /start или /admin')
+    await message.answer('Перезапуск бота: /start')
