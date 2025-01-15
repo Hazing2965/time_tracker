@@ -40,7 +40,7 @@ async def uncorrect_action_input(message: Message,
 async def no_text(message: Message, widget: MessageInput, dialog_manager: DialogManager):
     await message.answer(text='Поддерживается только текст')
 
-async def clear_action_list(message: Message, widget: Button, dialog_manager: DialogManager):
-    await update_info(message.from_user.id, {'action_list': None})
+async def clear_action_list(callback: CallbackQuery, widget: Button, dialog_manager: DialogManager):
+    await update_info(callback.from_user.id, {'action_list': None})
 
 

@@ -187,3 +187,19 @@ async def add_action_db(user_id, action_name):
 
 
     return action_id
+
+async def get_action_now_db(user_id):
+    action_name = None
+    # Подключение к базе данных
+    async with aiosqlite.connect(PATH_DB) as db:
+        # Узнаём id предыдущей активности
+        async with db.execute('SELECT action_id FROM users WHERE user_id = ?', (user_id,)) as cursor:
+            action_id_old = await cursor.fetchone()
+        if action_id_old != None:
+            action_id_old = action_id_old[0]
+            # Получаем имя предыдущей записи пользователя
+            async with db.execute("SELECT name FROM records WHERE action_id = ?", (action_id_old,)) as cursor:
+                action_name = await cursor.fetchone()
+                action_name = action_name[0]
+    return action_name
+
