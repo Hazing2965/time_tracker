@@ -17,7 +17,8 @@ async def process_new_action_command(message: Message, dialog_manager: DialogMan
 
 
 @router.message(Command(commands=['stop']))
-async def process_stop_command(message: Message):
+async def process_stop_command(message: Message, dialog_manager: DialogManager):
+    await dialog_manager.done()
     await message.answer('Окончание эксперимента, получение результатов')
 
 @router.message(Command(commands=['admin']))

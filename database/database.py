@@ -172,10 +172,10 @@ async def add_action_db(user_id, action_name):
         async with db.execute("SELECT action_list FROM users WHERE user_id = ?", (user_id,)) as cursor:
             result = await cursor.fetchone()
             action_list = json.loads(result[0]) if result[0] else []
-        if len(action_list) > 6:
-            action_list.pop(0)
+        if action_name in action_list:
+            action_list.remove(action_name)
         action_list.append(action_name)
-        if len(action_list) > 6:
+        if len(action_list) > 12:
             action_list.pop(0)
         # Преобразование списка в JSON
         action_list_json = json.dumps(action_list, ensure_ascii=False)

@@ -3,9 +3,11 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram_dialog import setup_dialogs
+from redis.asyncio import Redis
 
 from aio_dialogs.dialogs import admin_dialog, new_action_dialog
 from config.config import BOT_TOKEN
@@ -26,9 +28,12 @@ async def main():
     # Выводим в консоль информацию о начале запуска бота
     logger.info('Starting bot')
 
+    # Инициализируем Redis
+    redis = Redis(host='localhost', db=2)
+
     await create_database()
 
-    storage = MemoryStorage()
+    storage = RedisStorage(redis=redis, key_builder=DefaultKeyBuilder(with_destiny=True))
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=storage)
 

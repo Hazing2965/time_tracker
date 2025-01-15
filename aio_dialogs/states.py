@@ -7,5 +7,3 @@ class state_admin(StatesGroup):
 
 class new_action(StatesGroup):
     start = State()
-    save = State()
-
