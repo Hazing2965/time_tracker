@@ -24,7 +24,7 @@ async def correct_action_input(message: Message,
     await add_action_db(message.from_user.id, text)
     bot = message.bot
 
-    await bot.send_message(message.from_user.id, f'Действие "{text}" сохранено')
+    await bot.send_message(message.from_user.id, f'Действие "<b>{text}</b>" сохранено')
     await bot.delete_message(message.from_user.id, message.message_id)
     await dialog_manager.switch_to(state=new_action.start, show_mode=ShowMode.DELETE_AND_SEND)
 
@@ -41,6 +41,6 @@ async def no_text(message: Message, widget: MessageInput, dialog_manager: Dialog
     await message.answer(text='Поддерживается только текст')
 
 async def clear_action_list(callback: CallbackQuery, widget: Button, dialog_manager: DialogManager):
-    await update_info(callback.from_user.id, {'action_list': None})
+    await update_info(fields={"action_list": None}, table="users", where={"user_id": callback.from_user.id})
 
 

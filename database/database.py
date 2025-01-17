@@ -5,8 +5,10 @@ import uuid
 from datetime import datetime
 
 import aiosqlite
+from aiogram import Bot
+from aiogram.types import User
 
-from config.config import PATH_DB, MOSCOW_TIMEZONE, FORMAT_DATE_AND_TIME
+from config.config import PATH_DB, MOSCOW_TIMEZONE, FORMAT_DATE_AND_TIME, ADMIN_ID
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
@@ -56,46 +58,61 @@ async def create_database():
 
         await db.commit()
 
-async def new_user(user_id):
+async def new_user(user: User, bot: Bot):
+    user_id = user.id
     async with aiosqlite.connect(PATH_DB) as db:
         # Проверить, существует ли пользователь
         async with db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)) as cursor:
-            user = await cursor.fetchone()
+            user_db = await cursor.fetchone()
             # Пользователь не существует — добавляем
-            if user is None:
+            if user_db is None:
                 date_now = datetime.now(MOSCOW_TIMEZONE).strftime(FORMAT_DATE_AND_TIME)
                 await db.execute("INSERT INTO users (user_id, date_start) VALUES (?, ?)", (user_id, date_now))
                 await db.commit()
+                await bot.send_message(ADMIN_ID, f'Новый пользователь!\n'
+                                                f'{user.first_name} {user.last_name}\n'
+                                                f'@{user.username}')
 
 
-# data1 = await get_info(user_id, [name, age, sex])
-async def get_info(user_id, fields):
+#info = await get_info(table='users', where={"user_id": 232435, "age": 25}, fields=["name", "age", "sex"])
+async def get_info(table, where, fields):
     async with aiosqlite.connect(PATH_DB) as db:
         # Создаем строку для запроса с нужными полями
         fields_str = ", ".join(fields)
 
+        # Разбираем условие WHERE
+        where_clause = " AND ".join([f"{key} = ?" for key in where.keys()])
+        where_values = list(where.values())
+
         # Выполняем запрос
-        query = f"SELECT {fields_str} FROM users WHERE user_id = ?"
-        async with db.execute(query, (user_id,)) as cursor:
-            row = await cursor.fetchone()
+        query = f"SELECT {fields_str} FROM {table} WHERE {where_clause}"
+        async with db.execute(query, where_values) as cursor:
+            rows = await cursor.fetchall()
 
-        # Если пользователь найден, создаем словарь из полей и возвращаем
-        if row:
-            return {field: row[idx] for idx, field in enumerate(fields)}
+        # Преобразуем результат в список словарей
+        if rows:
+            return [
+                {field: row[idx] for idx, field in enumerate(fields)}
+                for row in rows
+            ]
 
-        # Если пользователь не найден, возвращаем None
-        return None
+        # Если записей нет, возвращаем пустой список
+        return []
 
-# await update_info(user_id, {'age': 30, 'name': 'Ted'})
-async def update_info(user_id, fields):
+# await update_info(fields={"name": "Артем", "age": 24}, table="users", where={"user_id": 232435})
+async def update_info(fields, table, where):
     async with aiosqlite.connect(PATH_DB) as db:
         # Генерация строки SET для SQL-запроса
         set_clause = ", ".join([f"{key} = ?" for key in fields.keys()])
-        values = list(fields.values()) + [user_id]
+        set_values = list(fields.values())
+
+        # Генерация строки WHERE для SQL-запроса
+        where_clause = " AND ".join([f"{key} = ?" for key in where.keys()])
+        where_values = list(where.values())
 
         # Формируем и выполняем запрос
-        query = f"UPDATE users SET {set_clause} WHERE user_id = ?"
-        await db.execute(query, values)
+        query = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
+        await db.execute(query, set_values + where_values)
         await db.commit()
 
 
@@ -200,6 +217,34 @@ async def get_action_now_db(user_id):
             # Получаем имя предыдущей записи пользователя
             async with db.execute("SELECT name FROM records WHERE action_id = ?", (action_id_old,)) as cursor:
                 action_name = await cursor.fetchone()
-                action_name = action_name[0]
+                if action_name:
+                    action_name = action_name[0]
+
     return action_name
+
+async def remove_old_record(user_id):
+    # Подключение к базе данных
+    async with aiosqlite.connect(PATH_DB) as db:
+        await db.execute('DELETE FROM records WHERE user_id = ?', (user_id, ))
+        await db.commit()
+
+
+async def get_count():
+    async with aiosqlite.connect(PATH_DB) as db:
+        today = datetime.now(MOSCOW_TIMEZONE).strftime("%Y-%m-%d")
+        queries = [
+            ("SELECT COUNT(user_id) FROM users WHERE date_last LIKE ?", (f"{today}%",), "count_today"),
+            ("SELECT COUNT(user_id) FROM users WHERE date_start LIKE ?", (f"{today}%",), "count_today_new"),
+            ("SELECT COUNT(user_id) FROM users", None, "count_all")
+        ]
+
+        results = {}
+        for query, params, key in queries:
+            async with db.execute(query, params or ()) as cursor:
+                info = await cursor.fetchone()
+                results[key] = info[0] if info else 0
+
+        return results["count_today"], results["count_today_new"], results["count_all"]
+
+
 
