@@ -75,17 +75,30 @@ async def new_user(user: User, bot: Bot):
 
 
 #info = await get_info(table='users', where={"user_id": 232435, "age": 25}, fields=["name", "age", "sex"])
-async def get_info(table, where, fields):
+async def get_info(table, fields, where=None):
     async with aiosqlite.connect(PATH_DB) as db:
         # Создаем строку для запроса с нужными полями
         fields_str = ", ".join(fields)
 
         # Разбираем условие WHERE
-        where_clause = " AND ".join([f"{key} = ?" for key in where.keys()])
-        where_values = list(where.values())
+        where_clause = ""
+        where_values = []
+        if where:
+            conditions = []
+            for key, value in where.items():
+                if value is None:
+                    conditions.append(f"{key} IS NULL")
+                else:
+                    conditions.append(f"{key} = ?")
+                    where_values.append(value)
+            where_clause = " AND ".join(conditions)
+
+        # Формируем запрос
+        query = f"SELECT {fields_str} FROM {table}"
+        if where_clause:
+            query += f" WHERE {where_clause}"
 
         # Выполняем запрос
-        query = f"SELECT {fields_str} FROM {table} WHERE {where_clause}"
         async with db.execute(query, where_values) as cursor:
             rows = await cursor.fetchall()
 
@@ -98,7 +111,6 @@ async def get_info(table, where, fields):
 
         # Если записей нет, возвращаем пустой список
         return []
-
 # await update_info(fields={"name": "Артем", "age": 24}, table="users", where={"user_id": 232435})
 async def update_info(fields, table, where):
     async with aiosqlite.connect(PATH_DB) as db:

@@ -14,6 +14,10 @@ from database.database import create_database
 from handlers import default_handler, other_handler
 from services.middlewars import User_send
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from services.scheduler import delete_24_hour
+
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
 async def main():
@@ -28,6 +32,8 @@ async def main():
 
     # Инициализируем Redis
     redis = Redis(host='localhost', db=2)
+    # Инициализируем Scheduler
+    scheduler = AsyncIOScheduler()
 
     await create_database()
 
@@ -49,6 +55,13 @@ async def main():
     dp.include_router(other_handler.router)
 
     setup_dialogs(dp)
+    scheduler.start()
+    await delete_24_hour(bot)
+    scheduler.add_job(delete_24_hour, "interval", hours=1, args=(bot,), timezone='Europe/Moscow')
+
+
+
+
 
     await bot.delete_webhook(drop_pending_updates=False)
     logger.debug('Запуск polling')
