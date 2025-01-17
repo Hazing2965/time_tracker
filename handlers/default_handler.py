@@ -31,7 +31,7 @@ async def process_stop_command(message: Message, dialog_manager: DialogManager):
     info = info[0].get('action_id')
     # Если она была
     if info is None:
-        await message.answer('Записей не найдено. Начать: /new_action')
+        await message.answer('Записей не найдено. Начать: <b>/new_action</b>')
     else:
         try:
             await dialog_manager.done()

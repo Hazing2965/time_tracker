@@ -14,7 +14,7 @@ async def action_select(callback: CallbackQuery, widget: Select,
                              dialog_manager: DialogManager, action_name: str):
     await add_action_db(callback.from_user.id, action_name)
     bot = callback.bot
-    await bot.send_message(callback.from_user.id, f'Действие "{action_name}" сохранено')
+    await bot.send_message(callback.from_user.id, f'Действие "<b>{action_name}</b>" сохранено', parse_mode='HTML')
     await dialog_manager.switch_to(state=new_action.start, show_mode=ShowMode.DELETE_AND_SEND)
 
 async def correct_action_input(message: Message,
@@ -24,7 +24,7 @@ async def correct_action_input(message: Message,
     await add_action_db(message.from_user.id, text)
     bot = message.bot
 
-    await bot.send_message(message.from_user.id, f'Действие "<b>{text}</b>" сохранено')
+    await bot.send_message(message.from_user.id, f'Действие "<b>{text}</b>" сохранено', parse_mode='HTML')
     await bot.delete_message(message.from_user.id, message.message_id)
     await dialog_manager.switch_to(state=new_action.start, show_mode=ShowMode.DELETE_AND_SEND)
 
@@ -33,7 +33,7 @@ async def uncorrect_action_input(message: Message,
         dialog_manager: DialogManager,
         error: ValueError):
     if str(error) == 'emoji':
-        await message.answer('Ожидаю название до 20 символов(только текст)')
+        await message.answer('Ожидаю название до 20 символов (только текст)')
     else:
         await message.answer('Ожидаю название до 20 символов')
 
