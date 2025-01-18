@@ -7,3 +7,6 @@ class state_admin(StatesGroup):
 
 class new_action(StatesGroup):
     start = State()
+
+class settings_state(StatesGroup):
+    timezone = State()

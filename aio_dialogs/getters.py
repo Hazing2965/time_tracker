@@ -19,3 +19,7 @@ async def admin_getter(dialog_manager: DialogManager, **kwargs):
                           f'Новых: {count_today_new}\n'
                           f'Всего: {count_all}')
     return {'count_user': count_user_message}
+
+async def settings_timezone_getter(dialog_manager: DialogManager, **kwargs):
+    timezone_list = [(f"UTC{'+' if offset >= 0 else ''}{offset}:00", offset) for offset in range(-12, 15)]
+    return {'timezone_list': timezone_list}

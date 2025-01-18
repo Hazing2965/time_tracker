@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone
 
 from aiogram import Bot
 from aiogram.types import FSInputFile
@@ -52,16 +52,25 @@ def split_activity_by_days_2(name, time_start, time_end):
     activities.append({'name': name, 'time_start': time_start, 'time_end': time_end, 'duration': time_end - time_start})
     return activities
 
-def generate_report_sort(data):
+async def generate_report_sort(data, user_id):
     # Преобразуем данные из списка
     result = []
     daily_activities = {}
     # Проходимся по каждой записи и разбиваем на дни
     for item in data:
-        # Парсим строки времени
         time_start = datetime.strptime(item['time_start'], FORMAT_DATE_AND_TIME)
         time_end = datetime.strptime(item['time_end'], FORMAT_DATE_AND_TIME)
         # Приводим в дату пользователя
+        time_start = time_start.replace(tzinfo=timezone(timedelta(hours=3)))
+        time_end = time_end.replace(tzinfo=timezone(timedelta(hours=3)))
+        timezone_user = await get_info(table='users',
+                       where={'user_id': user_id},
+                       fields=['timezone'])
+        timezone_user = timezone_user[0].get('timezone') or 3
+
+        # Переводим в другой часовой пояс (+7)
+        time_start = time_start.astimezone(timezone(timedelta(hours=timezone_user))).replace(tzinfo=None)
+        time_end = time_end.astimezone(timezone(timedelta(hours=timezone_user))).replace(tzinfo=None)
 
         name = item['name']
 
@@ -89,7 +98,7 @@ def generate_report_sort(data):
 
     return "\n".join(result).strip()
 
-def generate_report_full(data):
+async def generate_report_full(data, user_id):
     # Преобразуем данные в структуру с разбивкой по дням
     daily_totals = defaultdict(lambda: defaultdict(timedelta))
 
@@ -97,6 +106,19 @@ def generate_report_full(data):
         # Парсим строки времени
         time_start = datetime.strptime(item['time_start'], '%Y-%m-%d %H:%M:%S')
         time_end = datetime.strptime(item['time_end'], '%Y-%m-%d %H:%M:%S')
+        # Приводим в дату пользователя
+
+        time_start = time_start.replace(tzinfo=timezone(timedelta(hours=3)))
+        time_end = time_end.replace(tzinfo=timezone(timedelta(hours=3)))
+
+        timezone_user = await get_info(table='users',
+                                       where={'user_id': user_id},
+                                       fields=['timezone'])
+        timezone_user = timezone_user[0].get('timezone') or 3
+
+        # Переводим в другой часовой пояс (+7)
+        time_start = time_start.astimezone(timezone(timedelta(hours=timezone_user))).replace(tzinfo=None)
+        time_end = time_end.astimezone(timezone(timedelta(hours=timezone_user))).replace(tzinfo=None)
 
         # Разбиваем активность на части по дням
         activity_parts = split_activity_by_days({'name': item['name'], 'time_start': time_start, 'time_end': time_end})
@@ -116,34 +138,34 @@ def generate_report_full(data):
     return "\n".join(result).strip()
 
 async def stop_record(bot: Bot, user_id):
-    # нужно удалить запись о активном действии, поставить конец действию которое шло, получить статистику, очистить записи
     # Получаем ID последней записи
     info = await get_info(table='users', where={"user_id": user_id}, fields=["action_id"])
     action_id_old = info[0].get('action_id')
-    # Устанавливаем время конца действия
-    await update_info(fields={"time_end": datetime.now(MOSCOW_TIMEZONE).strftime(FORMAT_DATE_AND_TIME)}, table="records", where={"action_id": action_id_old})
-    # Убираем из активных действие
-    await update_info(fields={"action_id": None}, table="users", where={"user_id": user_id})
-    # Получаем все записи
-    info = await get_info(table='records', where={"user_id": user_id}, fields=['name', 'time_start', 'time_end'])
-    # print(info) #[{'name': 'Работаю', 'time_start': '2025-01-13 18:24:22', 'time_end': '2025-01-13 18:25:21'},
-    # Формируем вывод
-    report_file = generate_report_sort(info)
-    report_message = generate_report_full(info)
-    # Сохраняем в файл
-    name_report = f'{user_id}_report_full.txt'
-    with open(name_report, "w", encoding="utf-8") as file:
-        file.write(report_file)
-    try:
-        await bot.send_message(user_id, report_message)
-    except:
-        name_mini_record_message = f'{user_id}_report_sort.txt'
-        with open(name_mini_record_message, "w", encoding="utf-8") as file:
-            file.write(report_message)
-        await bot.send_document(chat_id=user_id, document=FSInputFile(path=report_file, filename='report_sort.txt'))
-        os.remove(name_mini_record_message)
-    await bot.send_document(chat_id=user_id, document=FSInputFile(path=name_report, filename='report_full.txt'))
-    os.remove(name_report)
-    await remove_old_record(user_id)
+    if action_id_old:
+        # Устанавливаем время конца действия
+        await update_info(fields={"time_end": datetime.now(MOSCOW_TIMEZONE).strftime(FORMAT_DATE_AND_TIME)}, table="records", where={"action_id": action_id_old})
+        # Убираем из активных действие
+        await update_info(fields={"action_id": None}, table="users", where={"user_id": user_id})
+        # Получаем все записи
+        info = await get_info(table='records', where={"user_id": user_id}, fields=['name', 'time_start', 'time_end'])
+        # print(info) #[{'name': 'Работаю', 'time_start': '2025-01-01 18:24:22', 'time_end': '2025-01-01 18:25:21'}, ]
+        # Формируем вывод
+        report_file = await generate_report_sort(info, user_id)
+        report_message = await generate_report_full(info, user_id)
+        # Сохраняем в файл
+        name_report = f'{user_id}_report_full.txt'
+        with open(name_report, "w", encoding="utf-8") as file:
+            file.write(report_file)
+        try:
+            await bot.send_message(user_id, report_message)
+        except:
+            name_mini_record_message = f'{user_id}_report_sort.txt'
+            with open(name_mini_record_message, "w", encoding="utf-8") as file:
+                file.write(report_message)
+            await bot.send_document(chat_id=user_id, document=FSInputFile(path=report_file, filename='report_sort.txt'))
+            os.remove(name_mini_record_message)
+        await bot.send_document(chat_id=user_id, document=FSInputFile(path=name_report, filename='report_full.txt'))
+        os.remove(name_report)
+        await remove_old_record(user_id)
 
 

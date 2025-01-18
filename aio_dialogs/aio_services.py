@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import DialogManager, ShowMode
+from aiogram_dialog import DialogManager, ShowMode, StartMode
 from aiogram_dialog.widgets.input import ManagedTextInput, MessageInput
 from aiogram_dialog.widgets.kbd import Select, Button
 
@@ -43,4 +43,11 @@ async def no_text(message: Message, widget: MessageInput, dialog_manager: Dialog
 async def clear_action_list(callback: CallbackQuery, widget: Button, dialog_manager: DialogManager):
     await update_info(fields={"action_list": None}, table="users", where={"user_id": callback.from_user.id})
 
+async def timezone_select(callback: CallbackQuery, widget: Select,
+                             dialog_manager: DialogManager, timezone: int):
+    await callback.answer('Сохранено')
+    await update_info(table='users',
+                      where={'user_id': callback.from_user.id},
+                      fields={'timezone': timezone})
+    await dialog_manager.start(state=new_action.start, mode=StartMode.RESET_STACK)
 

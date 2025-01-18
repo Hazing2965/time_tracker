@@ -7,15 +7,15 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram_dialog import setup_dialogs
 from redis.asyncio import Redis
 
-from aio_dialogs.dialogs import admin_dialog, new_action_dialog
+from aio_dialogs.dialogs import admin_dialog, new_action_dialog, settings_dialog
 from config.config import BOT_TOKEN
 from config.main_menu import set_main_menu
 from database.database import create_database
 from handlers import default_handler, other_handler
-from services.middlewars import User_send
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from services.middlewars import UserSend
 from services.scheduler import delete_24_hour
 
 # Инициализируем логгер
@@ -46,12 +46,13 @@ async def main():
     await set_main_menu(bot)
 
     # Подключаем middleware
-    dp.message.middleware(User_send())
+    dp.update.middleware(UserSend())
 
     # Регистрируем роутеры в диспетчере
     dp.include_router(default_handler.router)
     dp.include_routers(admin_dialog)
     dp.include_routers(new_action_dialog)
+    dp.include_routers(settings_dialog)
     dp.include_router(other_handler.router)
 
     setup_dialogs(dp)

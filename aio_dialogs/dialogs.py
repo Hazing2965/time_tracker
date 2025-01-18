@@ -6,10 +6,10 @@ from aiogram_dialog.widgets.kbd import Next, Row, Button, SwitchTo, Cancel, Sele
 from aiogram_dialog.widgets.text import Const, Format, Multi
 
 from aio_dialogs.aio_services import action_select, correct_action_input, uncorrect_action_input, no_text, \
-    clear_action_list
+    clear_action_list, timezone_select
 from aio_dialogs.filters import action_check
-from aio_dialogs.getters import new_action_getter, admin_getter
-from aio_dialogs.states import state_admin, new_action
+from aio_dialogs.getters import new_action_getter, admin_getter, settings_timezone_getter
+from aio_dialogs.states import state_admin, new_action, settings_state
 
 admin_dialog = Dialog(
     Window(
@@ -54,5 +54,23 @@ new_action_dialog = Dialog(
         getter=new_action_getter,
         parse_mode='HTML',
         state=new_action.start
+    )
+)
+
+settings_dialog = Dialog(
+    Window(
+        Const('<b>Выберите вашу временную зону</b>'),
+        Group(
+            Select(
+                Format('{item[0]}'),
+                id='timezone',
+                item_id_getter=lambda x: x[1],
+                items='timezone_list',
+                on_click=timezone_select,
+            ),
+        width=3),
+        getter=settings_timezone_getter,
+        parse_mode='HTML',
+        state=settings_state.timezone
     )
 )

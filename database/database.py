@@ -23,6 +23,7 @@ async def create_database():
             "date_start": "TEXT",
             "date_last": "TEXT",
             "action_list": "TEXT",
+            "timezone": "INTEGER"
         },
         "records": {  # Записи
             "action_id": "TEXT PRIMARY KEY",
@@ -125,13 +126,6 @@ async def update_info(fields, table, where):
         # Формируем и выполняем запрос
         query = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
         await db.execute(query, set_values + where_values)
-        await db.commit()
-
-
-async def update_last_send(user_id):
-    async with aiosqlite.connect(PATH_DB) as db:
-        date_now = datetime.now(MOSCOW_TIMEZONE).strftime(FORMAT_DATE_AND_TIME)
-        await db.execute('UPDATE users SET date_last = ? WHERE user_id = ?', (date_now, user_id))
         await db.commit()
 
 async def save_list_to_db(user_id: int, words: list):
