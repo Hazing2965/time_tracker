@@ -4,7 +4,7 @@ from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 
 from aio_dialogs.states import state_admin, new_action, settings_state
-from config.config import ADMIN_ID
+from config.config import ADMIN_ID, HELP_USER
 from database.database import get_info
 from lexicon.LEXICON import TEXT
 from services.services import stop_record
@@ -17,7 +17,7 @@ async def process_start_command(message: Message):
 
 @router.message(Command(commands=['help']))
 async def process_help_command(message: Message):
-    await message.answer('Поддержка бота: @your_support_bots')
+    await message.answer(f'Поддержка бота: {HELP_USER}')
 
 @router.message(Command(commands=['new_action']))
 async def process_new_action_command(message: Message, dialog_manager: DialogManager):
