@@ -1,6 +1,6 @@
 import logging
 
-from aiogram import Router, Bot, F
+from aiogram import Router, Bot
 from aiogram.types import ErrorEvent
 
 from config.config import ADMIN_ID
@@ -31,4 +31,3 @@ async def error_handler(event: ErrorEvent, bot: Bot):
         await bot.send_message(ADMIN_ID, f'Ошибка: "<b>{event.exception}</b>"\n\n'
                                          f'event_type = "<b>{event.update.event_type}</b>"',
                                parse_mode='HTML')
-

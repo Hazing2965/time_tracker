@@ -7,17 +7,14 @@ from aiogram.types import FSInputFile
 from config.config import MOSCOW_TIMEZONE, FORMAT_DATE_AND_TIME
 from database.database import update_info, get_info, remove_old_record
 
+from collections import defaultdict
+
 
 def format_duration(duration):
     """Форматирует timedelta в строку вида ЧЧ:ММ."""
     hours, remainder = divmod(duration.seconds, 3600)
     minutes = remainder // 60
     return f"{hours:02}:{minutes:02}"
-
-
-
-
-from collections import defaultdict
 
 
 def split_activity_by_days(activity):
@@ -36,6 +33,7 @@ def split_activity_by_days(activity):
     activities.append({'name': name, 'date': time_start.date(), 'duration': time_end - time_start})
     return activities
 
+
 def split_activity_by_days_2(name, time_start, time_end):
     """Разбивает активность на части, если она переходит через полночь."""
     # Получаем запись
@@ -52,6 +50,7 @@ def split_activity_by_days_2(name, time_start, time_end):
     activities.append({'name': name, 'time_start': time_start, 'time_end': time_end, 'duration': time_end - time_start})
     return activities
 
+
 async def generate_report_sort(data, user_id):
     # Преобразуем данные из списка
     result = []
@@ -64,8 +63,8 @@ async def generate_report_sort(data, user_id):
         time_start = time_start.replace(tzinfo=timezone(timedelta(hours=3)))
         time_end = time_end.replace(tzinfo=timezone(timedelta(hours=3)))
         timezone_user = await get_info(table='users',
-                       where={'user_id': user_id},
-                       fields=['timezone'])
+                                       where={'user_id': user_id},
+                                       fields=['timezone'])
         timezone_user = timezone_user[0].get('timezone') or 3
 
         # Переводим в другой часовой пояс (+7)
@@ -97,6 +96,7 @@ async def generate_report_sort(data, user_id):
         result.append("")  # Пустая строка для разделения дней
 
     return "\n".join(result).strip()
+
 
 async def generate_report_full(data, user_id):
     # Преобразуем данные в структуру с разбивкой по дням
@@ -137,13 +137,15 @@ async def generate_report_full(data, user_id):
 
     return "\n".join(result).strip()
 
+
 async def stop_record(bot: Bot, user_id):
     # Получаем ID последней записи
     info = await get_info(table='users', where={"user_id": user_id}, fields=["action_id"])
     action_id_old = info[0].get('action_id')
     if action_id_old:
         # Устанавливаем время конца действия
-        await update_info(fields={"time_end": datetime.now(MOSCOW_TIMEZONE).strftime(FORMAT_DATE_AND_TIME)}, table="records", where={"action_id": action_id_old})
+        await update_info(fields={"time_end": datetime.now(MOSCOW_TIMEZONE).strftime(FORMAT_DATE_AND_TIME)},
+                          table="records", where={"action_id": action_id_old})
         # Убираем из активных действие
         await update_info(fields={"action_id": None}, table="users", where={"user_id": user_id})
         # Получаем все записи
@@ -158,7 +160,7 @@ async def stop_record(bot: Bot, user_id):
             file.write(report_file)
         try:
             await bot.send_message(user_id, report_message)
-        except:
+        except Exception:
             name_mini_record_message = f'{user_id}_report_sort.txt'
             with open(name_mini_record_message, "w", encoding="utf-8") as file:
                 file.write(report_message)
@@ -167,5 +169,3 @@ async def stop_record(bot: Bot, user_id):
         await bot.send_document(chat_id=user_id, document=FSInputFile(path=name_report, filename='report_full.txt'))
         os.remove(name_report)
         await remove_old_record(user_id)
-
-

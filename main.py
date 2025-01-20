@@ -20,6 +20,8 @@ from services.scheduler import delete_24_hour
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
+
+
 async def main():
     # Конфигурируем логирование
     logging.basicConfig(
@@ -41,7 +43,6 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=storage)
 
-
     # Настраиваем главное меню бота
     await set_main_menu(bot)
 
@@ -61,15 +62,9 @@ async def main():
     await delete_24_hour(bot)
     scheduler.add_job(delete_24_hour, "interval", hours=1, args=(bot,), timezone='Europe/Moscow')
 
-
-
-
-
     await bot.delete_webhook(drop_pending_updates=False)
     logger.debug('Запуск polling')
     await dp.start_polling(bot, )
-
-
 
 
 if __name__ == '__main__':

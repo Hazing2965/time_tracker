@@ -1,6 +1,5 @@
 import json
 import logging
-import random
 import uuid
 from datetime import datetime
 
@@ -13,10 +12,10 @@ from config.config import PATH_DB, MOSCOW_TIMEZONE, FORMAT_DATE_AND_TIME, ADMIN_
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
 
-async def create_database():
 
+async def create_database():
     # Желаемая структура базы данных
-    desired_schema = { # Пользователи
+    desired_schema = {  # Пользователи
         "users": {
             "user_id": "INTEGER PRIMARY KEY",
             "action_id": "TEXT",
@@ -59,6 +58,7 @@ async def create_database():
 
         await db.commit()
 
+
 async def new_user(user: User, bot: Bot):
     user_id = user.id
     async with aiosqlite.connect(PATH_DB) as db:
@@ -71,11 +71,11 @@ async def new_user(user: User, bot: Bot):
                 await db.execute("INSERT INTO users (user_id, date_start) VALUES (?, ?)", (user_id, date_now))
                 await db.commit()
                 await bot.send_message(ADMIN_ID, f'Новый пользователь!\n'
-                                                f'{user.first_name} {user.last_name}\n'
-                                                f'@{user.username}')
+                                                 f'{user.first_name} {user.last_name}\n'
+                                                 f'@{user.username}')
 
 
-#info = await get_info(table='users', where={"user_id": 232435, "age": 25}, fields=["name", "age", "sex"])
+# info = await get_info(table='users', where={"user_id": 232435, "age": 25}, fields=["name", "age", "sex"])
 async def get_info(table, fields, where=None):
     async with aiosqlite.connect(PATH_DB) as db:
         # Создаем строку для запроса с нужными полями
@@ -112,6 +112,8 @@ async def get_info(table, fields, where=None):
 
         # Если записей нет, возвращаем пустой список
         return []
+
+
 # await update_info(fields={"name": "Артем", "age": 24}, table="users", where={"user_id": 232435})
 async def update_info(fields, table, where):
     async with aiosqlite.connect(PATH_DB) as db:
@@ -127,6 +129,7 @@ async def update_info(fields, table, where):
         query = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
         await db.execute(query, set_values + where_values)
         await db.commit()
+
 
 async def save_list_to_db(user_id: int, words: list):
     """
@@ -154,6 +157,7 @@ async def save_list_to_db(user_id: int, words: list):
         """, (user_id, word_list_json))
         await db.commit()
 
+
 async def get_list_from_db(user_id: int):
     """
     Получает список слов из базы данных.
@@ -176,19 +180,19 @@ async def add_action_db(user_id, action_name):
     action_id = f"{user_id}_{uuid.uuid4().hex}"
     date_now = datetime.now(MOSCOW_TIMEZONE).strftime(FORMAT_DATE_AND_TIME)
 
-
     # Подключение к базе данных
     async with aiosqlite.connect(PATH_DB) as db:
         # Узнаём id предыдущей активности
         async with db.execute('SELECT action_id FROM users WHERE user_id = ?', (user_id,)) as cursor:
             action_id_old = await cursor.fetchone()
         # Если она была
-        if action_id_old != None:
+        if action_id_old is not None:
             action_id_old = action_id_old[0]
             # Устанавливаем время конца предыдущей активности
             await db.execute('UPDATE records SET time_end = ? WHERE action_id = ?', (date_now, action_id_old))
         # Создаём новую активность
-        await db.execute("INSERT INTO records (action_id, user_id, name, time_start) VALUES (?, ?, ?, ?)", (action_id, user_id, action_name, date_now))
+        await db.execute("INSERT INTO records (action_id, user_id, name, time_start) VALUES (?, ?, ?, ?)",
+                         (action_id, user_id, action_name, date_now))
         # Записываем пользователю активность которая происходит
         await db.execute('UPDATE users SET action_id = ? WHERE user_id = ?', (action_id, user_id))
         # Получаем предыдущие записи пользователя
@@ -206,10 +210,8 @@ async def add_action_db(user_id, action_name):
         await db.execute('UPDATE users SET action_list = ? WHERE user_id = ?', (action_list_json, user_id))
         await db.commit()
 
-
-
-
     return action_id
+
 
 async def get_action_now_db(user_id):
     action_name = None
@@ -218,7 +220,7 @@ async def get_action_now_db(user_id):
         # Узнаём id предыдущей активности
         async with db.execute('SELECT action_id FROM users WHERE user_id = ?', (user_id,)) as cursor:
             action_id_old = await cursor.fetchone()
-        if action_id_old != None:
+        if action_id_old is not None:
             action_id_old = action_id_old[0]
             # Получаем имя предыдущей записи пользователя
             async with db.execute("SELECT name FROM records WHERE action_id = ?", (action_id_old,)) as cursor:
@@ -228,10 +230,11 @@ async def get_action_now_db(user_id):
 
     return action_name
 
+
 async def remove_old_record(user_id):
     # Подключение к базе данных
     async with aiosqlite.connect(PATH_DB) as db:
-        await db.execute('DELETE FROM records WHERE user_id = ?', (user_id, ))
+        await db.execute('DELETE FROM records WHERE user_id = ?', (user_id,))
         await db.commit()
 
 
@@ -251,6 +254,3 @@ async def get_count():
                 results[key] = info[0] if info else 0
 
         return results["count_today"], results["count_today_new"], results["count_all"]
-
-
-

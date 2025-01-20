@@ -11,13 +11,16 @@ from services.services import stop_record
 
 router = Router()
 
+
 @router.message(Command(commands=['start']))
 async def process_start_command(message: Message):
     await message.answer(TEXT['/start'], parse_mode='HTML')
 
+
 @router.message(Command(commands=['help']))
 async def process_help_command(message: Message):
     await message.answer(f'Поддержка бота: {HELP_USER}')
+
 
 @router.message(Command(commands=['new_action']))
 async def process_new_action_command(message: Message, dialog_manager: DialogManager):
@@ -28,6 +31,7 @@ async def process_new_action_command(message: Message, dialog_manager: DialogMan
     else:
         await message.answer(TEXT['note'], parse_mode='HTML')
         await dialog_manager.start(state=settings_state.timezone, mode=StartMode.RESET_STACK)
+
 
 @router.message(Command(commands=['timezone']))
 async def process_timezone_command(message: Message, dialog_manager: DialogManager):
@@ -53,6 +57,7 @@ async def process_stop_command(message: Message, dialog_manager: DialogManager):
 @router.message(Command(commands=['admin']), F.from_user.id == ADMIN_ID)
 async def process_admin_command(message: Message, dialog_manager: DialogManager):
     await dialog_manager.start(state=state_admin.start, mode=StartMode.RESET_STACK)
+
 
 @router.message(Command(commands=['id']))
 async def process_searth_id_command(message: Message):
