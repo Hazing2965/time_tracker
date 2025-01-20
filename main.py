@@ -11,7 +11,7 @@ from aio_dialogs.dialogs import admin_dialog, new_action_dialog, settings_dialog
 from config.config import BOT_TOKEN
 from config.main_menu import set_main_menu
 from database.database import create_database
-from handlers import default_handler, other_handler
+from handlers import default_handler, other_handler, errors_handler
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -54,6 +54,7 @@ async def main():
     dp.include_routers(new_action_dialog)
     dp.include_routers(settings_dialog)
     dp.include_router(other_handler.router)
+    dp.include_router(errors_handler.router)
 
     setup_dialogs(dp)
     scheduler.start()
